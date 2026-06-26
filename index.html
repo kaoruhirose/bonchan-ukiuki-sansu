@@ -214,7 +214,7 @@
         <span class="emoji">🎲</span><span class="name">ぼうけん</span><span class="desc">すごろくで すすもう</span>
       </button>
       <button class="game-card c-mole" onclick="Game.open('mole')">
-        <span class="emoji">🔨</span><span class="name">もぐらたたき</span><span class="desc">はやおし けいさん</span>
+        <span class="emoji" id="moleCardIcon"></span><span class="name">もぐらたたき</span><span class="desc">はやおし けいさん</span>
       </button>
       <button class="game-card c-sticker" onclick="Game.open('sticker')">
         <span class="emoji">🏅</span><span class="name">シールちょう</span><span class="desc">あつめた ごほうび</span>
@@ -316,6 +316,16 @@ function bonchanSVG(mood){
   </svg>`;
 }
 
+/* ===================== やわらかいハンマー SVG ===================== */
+const HAMMER_SVG =
+  '<svg viewBox="0 0 64 64" style="width:1em;height:1em;vertical-align:-0.18em" xmlns="http://www.w3.org/2000/svg">'+
+    '<rect x="27" y="29" width="10" height="30" rx="5" fill="#e0a96d"/>'+
+    '<rect x="29.4" y="31" width="2.8" height="26" rx="1.4" fill="#f6cf9a"/>'+
+    '<rect x="7" y="9" width="50" height="28" rx="14" fill="#ff7e8c"/>'+
+    '<rect x="12" y="13" width="40" height="8" rx="4" fill="#ff9aa6"/>'+
+    '<ellipse cx="22" cy="16.5" rx="5.5" ry="2.8" fill="#ffd5da"/>'+
+  '</svg>';
+
 /* ===================== Mole SVG ===================== */
 function moleSVG(num){
   return `<svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMax meet">
@@ -400,8 +410,8 @@ const Game = {
     Snd.tap();
     this.mode=mode;
     if(mode==='sticker'){ this.renderStickers(); this.show('sticker'); return; }
-    const titles={shop:'🛒 おかいもの', adventure:'🎲 ぼうけん', mole:'🔨 もぐらたたき'};
-    document.getElementById('levelTitle').textContent=titles[mode];
+    const titles={shop:'🛒 おかいもの', adventure:'🎲 ぼうけん', mole:HAMMER_SVG+' もぐらたたき'};
+    document.getElementById('levelTitle').innerHTML=titles[mode];
     this.show('level');
   },
 
@@ -469,7 +479,8 @@ const Game = {
     if(p.op==='+'){
       visual = repeatEmoji(f,p.a)+' <span style="color:#e85a92">＋</span> '+repeatEmoji(f,p.b);
     } else {
-      visual = repeatEmoji(f,p.a)+' <span style="color:#888">のうち</span> '+repeatEmoji('❌',p.b);
+      // のこったフルーツ ＋ 食べて満足した顔（たべちゃった ぶん）
+      visual = repeatEmoji(f, p.a - p.b) + ' <span style="color:#aaa">|</span> ' + repeatEmoji('😋', p.b);
     }
     const area=document.getElementById('playArea');
     area.innerHTML=`
@@ -630,6 +641,7 @@ function repeatEmoji(e,n){ let s=''; for(let i=0;i<n;i++) s+=`<span class="item"
 
 /* ===================== init ===================== */
 document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy');
+document.getElementById('moleCardIcon').innerHTML=HAMMER_SVG;
 Game.refreshCoins();
 // unlock audio on first touch (iOS)
 document.addEventListener('touchstart', function once(){ try{ Snd.tap(); }catch(e){} document.removeEventListener('touchstart',once); }, {once:true});
