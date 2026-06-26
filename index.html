@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ぼんちゃん うきうき算数</title>
+<style>
+  :root{
+    --bg1:#fff7e6; --bg2:#ffe0b2;
+    --ink:#5a3a1a;
+    --pink:#ff7eb3; --pink-d:#e85a92;
+    --blue:#5bc0f8; --blue-d:#2f9fe0;
+    --green:#7ed957; --green-d:#5cb83a;
+    --yellow:#ffd23f; --yellow-d:#e8b800;
+    --purple:#b48cff; --purple-d:#9168e8;
+    --card:#ffffff;
+    --shadow:0 8px 0 rgba(0,0,0,.12), 0 12px 24px rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","Rounded Mplus 1c", sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    overflow:hidden;
+    user-select:none; -webkit-user-select:none;
+  }
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
+  .screen{position:absolute; inset:0; display:none; flex-direction:column; padding:env(safe-area-inset-top) 16px 16px;}
+  .screen.active{display:flex; animation:fadeIn .35s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:scale(.98);}to{opacity:1; transform:scale(1);}}
+
+  /* ---- top bar ---- */
+  .topbar{display:flex; align-items:center; gap:10px; padding:10px 6px;}
+  .coin-badge{
+    display:flex; align-items:center; gap:8px; background:#fff;
+    border-radius:999px; padding:8px 18px 8px 12px; box-shadow:var(--shadow);
+    font-weight:800; font-size:24px;
+  }
+  .coin-badge .c{width:30px;height:30px;}
+  .btn-back{
+    background:#fff; border:none; border-radius:999px; padding:10px 20px;
+    font-size:22px; font-weight:800; color:var(--ink); box-shadow:var(--shadow);
+    cursor:pointer;
+  }
+  .spacer{flex:1;}
+
+  /* ---- home ---- */
+  .home-title{text-align:center; margin:6px 0 2px;}
+  .home-title h1{margin:0; font-size:42px; color:var(--pink-d); text-shadow:2px 3px 0 #fff;}
+  .home-title p{margin:2px 0 0; font-size:20px; color:#a07a4a;}
+  .bonchan-wrap{display:flex; justify-content:center; margin:6px 0;}
+  .bonchan-wrap svg{width:140px; height:140px; animation:bob 2.2s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-12px) rotate(2deg);}}
+  .menu{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    max-width:680px; width:100%; margin:8px auto 0; flex:1; align-content:center;
+  }
+  .game-card{
+    border:none; border-radius:28px; padding:22px 16px; cursor:pointer;
+    color:#fff; font-weight:800; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    transition:transform .08s;
+  }
+  .game-card:active{transform:translateY(4px) scale(.98);}
+  .game-card .emoji{font-size:56px; line-height:1;}
+  .game-card .name{font-size:26px;}
+  .game-card .desc{font-size:15px; font-weight:600; opacity:.95;}
+  .c-shop{background:linear-gradient(160deg,var(--pink),var(--pink-d));}
+  .c-adv{background:linear-gradient(160deg,var(--blue),var(--blue-d));}
+  .c-mole{background:linear-gradient(160deg,var(--green),var(--green-d));}
+  .c-sticker{background:linear-gradient(160deg,var(--purple),var(--purple-d));}
+
+  /* ---- level select ---- */
+  .panel{
+    background:var(--card); border-radius:28px; box-shadow:var(--shadow);
+    padding:22px; max-width:640px; width:100%; margin:auto;
+  }
+  .panel h2{margin:0 0 14px; font-size:30px; text-align:center;}
+  .level-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .level-btn{
+    border:none; border-radius:20px; padding:18px; font-size:22px; font-weight:800;
+    color:#fff; cursor:pointer; box-shadow:0 5px 0 rgba(0,0,0,.12);
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .level-btn .lv-sub{font-size:14px; font-weight:600; opacity:.9;}
+  .level-btn:active{transform:translateY(3px);}
+  .lv1{background:var(--green-d);} .lv2{background:var(--blue-d);}
+  .lv3{background:var(--yellow-d);} .lv4{background:var(--pink-d);}
+
+  /* ---- play area generic ---- */
+  .play{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;}
+  .question{
+    background:#fff; border-radius:26px; box-shadow:var(--shadow);
+    padding:24px 30px; font-size:64px; font-weight:800; text-align:center;
+    min-width:340px;
+  }
+  .visual-row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:560px; min-height:64px;}
+  .visual-row .item{font-size:46px; animation:pop .3s ease;}
+  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+  .answers{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; max-width:560px; width:100%;}
+  .ans-btn{
+    border:none; border-radius:22px; padding:22px 0; font-size:40px; font-weight:800;
+    color:#fff; background:linear-gradient(160deg,var(--blue),var(--blue-d));
+    box-shadow:0 6px 0 var(--blue-d); cursor:pointer;
+  }
+  .ans-btn:active{transform:translateY(4px); box-shadow:0 2px 0 var(--blue-d);}
+  .ans-btn.correct{background:linear-gradient(160deg,var(--green),var(--green-d)); box-shadow:0 6px 0 var(--green-d); animation:wob .4s;}
+  .ans-btn.wrong{background:linear-gradient(160deg,#ff8a8a,#e85a5a); box-shadow:0 6px 0 #c84444; animation:shake .4s;}
+  @keyframes wob{0%,100%{transform:rotate(0);}25%{transform:rotate(-6deg);}75%{transform:rotate(6deg);}}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+
+  /* progress dots */
+  .progress{display:flex; gap:8px; justify-content:center;}
+  .dot{width:18px;height:18px;border-radius:50%;background:#fff; box-shadow:inset 0 0 0 3px #e0c8a0;}
+  .dot.done{background:var(--green); box-shadow:none;}
+
+  /* ---- mole game ---- */
+  .mole-target{font-size:30px; font-weight:800; background:#fff; padding:12px 26px; border-radius:20px; box-shadow:var(--shadow);}
+  .mole-field{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+    max-width:520px; width:100%; margin-top:6px;
+  }
+  .hole{
+    background:radial-gradient(ellipse at 50% 75%, #8a5a2a 0%, #6a4420 70%);
+    border-radius:50%/40%; aspect-ratio:1/.8; position:relative; overflow:hidden;
+    box-shadow:inset 0 -8px 16px rgba(0,0,0,.35);
+  }
+  .mole{
+    position:absolute; left:8%; right:8%; bottom:-100%; top:auto; height:84%;
+    background:linear-gradient(160deg,#caa06a,#a87838);
+    border-radius:50% 50% 45% 45%; transition:bottom .18s cubic-bezier(.5,1.7,.6,1);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    font-size:34px; font-weight:800; color:#fff; text-shadow:0 2px 2px rgba(0,0,0,.3);
+  }
+  .mole.up{bottom:0;}
+  .mole.bonk{animation:bonk .3s;}
+  @keyframes bonk{0%{transform:scale(1);}50%{transform:scale(1.25) rotate(8deg);}100%{transform:scale(0);}}
+
+  /* ---- adventure board ---- */
+  .board-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;}
+  .track{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:600px;}
+  .cell{
+    width:46px;height:46px;border-radius:14px;background:#fff; box-shadow:0 3px 0 rgba(0,0,0,.1);
+    display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#bba;
+    position:relative;
+  }
+  .cell.goal{background:var(--yellow); color:var(--ink); font-size:24px;}
+  .cell.here{background:var(--pink); color:#fff; transform:scale(1.18); box-shadow:0 4px 0 var(--pink-d); z-index:2;}
+
+  /* ---- feedback overlay ---- */
+  #fx{position:fixed; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; z-index:50;}
+  .praise{
+    font-size:90px; font-weight:900; color:var(--pink-d); text-shadow:3px 4px 0 #fff;
+    opacity:0; transform:scale(.4);
+  }
+  .praise.show{animation:praise 1s ease;}
+  @keyframes praise{0%{opacity:0;transform:scale(.4) rotate(-10deg);}30%{opacity:1;transform:scale(1.1) rotate(4deg);}70%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.1);}}
+
+  /* result screen */
+  .result-stars{font-size:64px; letter-spacing:6px; animation:pop .5s;}
+  .reward-coins{font-size:40px; font-weight:800; color:var(--yellow-d); display:flex; align-items:center; gap:10px; justify-content:center;}
+  .big-btn{
+    border:none; border-radius:22px; padding:18px 40px; font-size:26px; font-weight:800;
+    color:#fff; background:linear-gradient(160deg,var(--green),var(--green-d));
+    box-shadow:0 6px 0 var(--green-d); cursor:pointer; margin:6px;
+  }
+  .big-btn:active{transform:translateY(4px);}
+  .big-btn.alt{background:linear-gradient(160deg,var(--blue),var(--blue-d)); box-shadow:0 6px 0 var(--blue-d);}
+
+  /* sticker book */
+  .sticker-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .sticker{
+    aspect-ratio:1; border-radius:20px; background:#f3e8d2; display:flex; align-items:center; justify-content:center;
+    font-size:46px; box-shadow:inset 0 3px 8px rgba(0,0,0,.1);
+  }
+  .sticker.locked{filter:grayscale(1) brightness(1.1); opacity:.4;}
+  .sticker.locked::after{content:"？"; position:absolute; font-size:30px; color:#b0976a;}
+  .sticker.unlocked{animation:pop .4s;}
+
+  .hint{font-size:18px; color:#a07a4a; text-align:center;}
+  .confetti{position:fixed;top:-20px;width:14px;height:14px;border-radius:3px;z-index:40;pointer-events:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <div class="topbar">
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span id="coinCount">0</span></div>
+    </div>
+    <div class="home-title">
+      <h1>うきうき算数</h1>
+      <p>ぼんちゃん と いっしょに あそぼう！ </p>
+    </div>
+    <div class="bonchan-wrap" id="homeBonchan"></div>
+    <div class="menu">
+      <button class="game-card c-shop" onclick="Game.open('shop')">
+        <span class="emoji">🛒</span><span class="name">おかいもの</span><span class="desc">たしざん・ひきざん</span>
+      </button>
+      <button class="game-card c-adv" onclick="Game.open('adventure')">
+        <span class="emoji">🎲</span><span class="name">ぼうけん</span><span class="desc">すごろくで すすもう</span>
+      </button>
+      <button class="game-card c-mole" onclick="Game.open('mole')">
+        <span class="emoji">🔨</span><span class="name">もぐらたたき</span><span class="desc">はやおし けいさん</span>
+      </button>
+      <button class="game-card c-sticker" onclick="Game.open('sticker')">
+        <span class="emoji">🏅</span><span class="name">シールちょう</span><span class="desc">あつめた ごほうび</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- LEVEL SELECT -->
+  <section id="level" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ もどる</button>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="panel">
+      <h2 id="levelTitle">レベルを えらんでね</h2>
+      <div class="level-grid">
+        <button class="level-btn lv1" onclick="Game.start(1)">★ 5まで<span class="lv-sub">かんたん たしざん</span></button>
+        <button class="level-btn lv2" onclick="Game.start(2)">★★ 10まで<span class="lv-sub">たしざん</span></button>
+        <button class="level-btn lv3" onclick="Game.start(3)">★★★ ひきざん<span class="lv-sub">10まで</span></button>
+        <button class="level-btn lv4" onclick="Game.start(4)">★★★★ ミックス<span class="lv-sub">たし＆ひき</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAY (shop / mole reuse this) -->
+  <section id="play" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ やめる</button>
+      <div class="spacer"></div>
+      <div class="progress" id="progress"></div>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="play" id="playArea"></div>
+  </section>
+
+  <!-- ADVENTURE -->
+  <section id="advplay" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ やめる</button>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="board-wrap">
+      <div class="track" id="track"></div>
+      <div id="advQuestion" class="question" style="font-size:48px"></div>
+      <div class="answers" id="advAnswers" style="max-width:520px"></div>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" class="screen">
+    <div class="play">
+      <div id="resultBonchan"></div>
+      <h1 style="margin:0;font-size:40px;color:var(--pink-d)">よくできました！</h1>
+      <div class="result-stars" id="resultStars">⭐⭐⭐</div>
+      <div class="reward-coins"><svg style="width:44px;height:44px" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span id="resultCoins">+0</span></div>
+      <div id="resultSticker" class="hint"></div>
+      <div>
+        <button class="big-btn" onclick="Game.replay()">もういちど</button>
+        <button class="big-btn alt" onclick="Game.home()">ホームへ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STICKER BOOK -->
+  <section id="sticker" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ もどる</button>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="panel">
+      <h2>🏅 シールちょう</h2>
+      <p class="hint">ゲームを クリアすると シールが もらえるよ！</p>
+      <div class="sticker-grid" id="stickerGrid"></div>
+    </div>
+  </section>
+
+</div>
+
+<div id="fx"><div class="praise" id="praise"></div></div>
+
+<script>
+/* ===================== Bonchan SVG ===================== */
+function bonchanSVG(mood){
+  // mood: happy / cheer / think
+  const eye = mood==='cheer' ? '<path d="M14 17 q3 -4 6 0" stroke="#5a3a1a" stroke-width="2" fill="none"/><path d="M26 17 q3 -4 6 0" stroke="#5a3a1a" stroke-width="2" fill="none"/>'
+            : '<circle cx="17" cy="18" r="2.6" fill="#5a3a1a"/><circle cx="29" cy="18" r="2.6" fill="#5a3a1a"/>';
+  const mouth = '<path d="M19 25 q4 5 8 0" stroke="#5a3a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+  return `<svg viewBox="0 0 46 50">
+    <ellipse cx="23" cy="46" rx="13" ry="3" fill="rgba(0,0,0,.08)"/>
+    <path d="M10 6 L14 14 M36 6 L32 14" stroke="#e8a05a" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="12" cy="5" r="3" fill="#ff7eb3"/><circle cx="34" cy="5" r="3" fill="#ffd23f"/>
+    <circle cx="23" cy="22" r="16" fill="#ffe0b2" stroke="#e8a05a" stroke-width="2"/>
+    <circle cx="15" cy="24" r="3" fill="#ffb3c8"/><circle cx="31" cy="24" r="3" fill="#ffb3c8"/>
+    ${eye}${mouth}
+  </svg>`;
+}
+
+/* ===================== Sound (WebAudio) ===================== */
+const Snd = (()=>{
+  let ctx;
+  function ac(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; }
+  function tone(freq, t0, dur, type='sine', vol=.22){
+    const c=ac(); const o=c.createOscillator(); const g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq, c.currentTime+t0);
+    g.gain.setValueAtTime(0, c.currentTime+t0);
+    g.gain.linearRampToValueAtTime(vol, c.currentTime+t0+.02);
+    g.gain.exponentialRampToValueAtTime(.001, c.currentTime+t0+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime+t0); o.stop(c.currentTime+t0+dur+.02);
+  }
+  return {
+    correct(){ [[523,0],[659,.1],[784,.2],[1047,.3]].forEach(([f,t])=>tone(f,t,.18,'triangle',.25)); },
+    wrong(){ tone(200,0,.2,'sawtooth',.18); tone(160,.12,.25,'sawtooth',.18); },
+    tap(){ tone(660,0,.06,'square',.12); },
+    coin(){ tone(988,0,.08,'square',.2); tone(1319,.08,.12,'square',.2); },
+    win(){ [[523,0],[523,.12],[523,.24],[659,.36],[784,.55]].forEach(([f,t])=>tone(f,t,.22,'triangle',.25)); },
+    bonk(){ tone(300,0,.08,'square',.2); tone(120,.05,.12,'sawtooth',.2); }
+  };
+})();
+
+/* speech (read the problem aloud) */
+function say(text){
+  try{
+    if(!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='ja-JP'; u.rate=.95; u.pitch=1.3;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ===================== State ===================== */
+const Store = {
+  load(){ try{ return JSON.parse(localStorage.getItem('bonchan')||'{}'); }catch(e){ return {}; } },
+  save(d){ localStorage.setItem('bonchan', JSON.stringify(d)); },
+  get(){ const d=this.load(); d.coins=d.coins||0; d.stickers=d.stickers||[]; return d; },
+};
+const STICKERS = ['🐶','🐱','🦄','🐢','🌈','🚀','🍩','⭐','🎈','🐠','🦖','👑'];
+
+/* ===================== Game ===================== */
+const Game = {
+  mode:null, level:1, qIndex:0, qTotal:5, correctCount:0,
+  current:null, advPos:0, advLen:12, locked:false,
+
+  refreshCoins(){
+    const c=Store.get().coins;
+    document.getElementById('coinCount').textContent=c;
+    document.querySelectorAll('.coinMirror').forEach(e=>e.textContent=c);
+  },
+  show(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    this.refreshCoins();
+  },
+  home(){ this.mode=null; this.show('home'); document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy'); },
+
+  open(mode){
+    Snd.tap();
+    this.mode=mode;
+    if(mode==='sticker'){ this.renderStickers(); this.show('sticker'); return; }
+    const titles={shop:'🛒 おかいもの', adventure:'🎲 ぼうけん', mole:'🔨 もぐらたたき'};
+    document.getElementById('levelTitle').textContent=titles[mode];
+    this.show('level');
+  },
+
+  start(level){
+    Snd.tap();
+    this.level=level; this.qIndex=0; this.correctCount=0; this.advPos=0; this.locked=false;
+    if(this.mode==='mole'){ this.qTotal=8; this.startMole(); this.show('play'); }
+    else if(this.mode==='adventure'){ this.qTotal=this.advLen; this.startAdventure(); this.show('advplay'); }
+    else { this.qTotal=5; this.show('play'); this.nextShop(); }
+  },
+
+  /* ---- problem generator ---- */
+  makeProblem(){
+    const L=this.level;
+    let a,b,op,ans;
+    if(L===1){ op='+'; a=rnd(1,4); b=rnd(1,5-a); ans=a+b; }
+    else if(L===2){ op='+'; a=rnd(1,8); b=rnd(1,10-a); ans=a+b; }
+    else if(L===3){ op='-'; a=rnd(3,10); b=rnd(1,a-1); ans=a-b; }
+    else { if(Math.random()<.5){op='+'; a=rnd(2,8); b=rnd(1,10-a); ans=a+b;} else {op='-'; a=rnd(3,10); b=rnd(1,a-1); ans=a-b;} }
+    return {a,b,op,ans};
+  },
+  choices(ans){
+    const set=new Set([ans]);
+    while(set.size<3){ let d=ans+rnd(-3,3); if(d>=0&&d<=12) set.add(d); }
+    return shuffle([...set]);
+  },
+
+  /* ---- progress dots ---- */
+  drawDots(){
+    const p=document.getElementById('progress'); p.innerHTML='';
+    for(let i=0;i<this.qTotal;i++){
+      const d=document.createElement('div'); d.className='dot'+(i<this.qIndex?' done':''); p.appendChild(d);
+    }
+  },
+
+  /* ============ SHOP / generic quiz ============ */
+  nextShop(){
+    if(this.qIndex>=this.qTotal){ return this.finish(); }
+    this.locked=false;
+    const p=this.makeProblem(); this.current=p;
+    this.drawDots();
+    const fruits=['🍎','🍊','🍓','🍌','🍇','🍑'];
+    const f=fruits[rnd(0,fruits.length-1)];
+    let visual='';
+    if(p.op==='+'){
+      visual = repeatEmoji(f,p.a)+' <span style="color:#e85a92">＋</span> '+repeatEmoji(f,p.b);
+    } else {
+      visual = repeatEmoji(f,p.a)+' <span style="color:#888">のうち</span> '+repeatEmoji('❌',p.b);
+    }
+    const area=document.getElementById('playArea');
+    area.innerHTML=`
+      <div class="hint">${p.op==='+'?'ぜんぶで いくつ？':'のこりは いくつ？'}</div>
+      <div class="visual-row">${visual}</div>
+      <div class="question">${p.a} ${p.op==='+'?'＋':'−'} ${p.b} = ?</div>
+      <div class="answers" id="ansRow"></div>`;
+    const row=document.getElementById('ansRow');
+    this.choices(p.ans).forEach(v=>{
+      const b=document.createElement('button'); b.className='ans-btn'; b.textContent=v;
+      b.onclick=()=>this.answer(b,v,p.ans,()=>{this.qIndex++; this.nextShop();});
+      row.appendChild(b);
+    });
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+  },
+
+  /* ============ ADVENTURE ============ */
+  startAdventure(){
+    this.advPos=0; this.drawTrack();
+    this.nextAdv();
+  },
+  drawTrack(){
+    const t=document.getElementById('track'); t.innerHTML='';
+    for(let i=0;i<=this.advLen;i++){
+      const c=document.createElement('div');
+      c.className='cell'+(i===this.advLen?' goal':'')+(i===this.advPos?' here':'');
+      c.innerHTML = i===this.advLen?'🏰' : (i===this.advPos?bonchanMini():'');
+      t.appendChild(c);
+    }
+  },
+  nextAdv(){
+    if(this.advPos>=this.advLen){ return this.finish(); }
+    this.locked=false;
+    const p=this.makeProblem(); this.current=p;
+    document.getElementById('advQuestion').textContent=`${p.a} ${p.op==='+'?'＋':'−'} ${p.b} = ?`;
+    const row=document.getElementById('advAnswers'); row.innerHTML='';
+    this.choices(p.ans).forEach(v=>{
+      const b=document.createElement('button'); b.className='ans-btn'; b.textContent=v;
+      b.onclick=()=>this.answer(b,v,p.ans,()=>{ this.advPos++; this.qIndex++; this.drawTrack(); this.nextAdv(); });
+      row.appendChild(b);
+    });
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+  },
+
+  /* ============ MOLE ============ */
+  startMole(){ this.moleScore=0; this.nextMole(); },
+  nextMole(){
+    if(this.qIndex>=this.qTotal){ return this.finish(); }
+    this.locked=false;
+    const p=this.makeProblem(); this.current=p;
+    const wrongs=new Set();
+    while(wrongs.size<5){ let d=p.ans+rnd(-3,3); if(d>=0&&d<=12&&d!==p.ans) wrongs.add(d); }
+    const vals=shuffle([p.ans,...wrongs]);
+    const area=document.getElementById('playArea');
+    area.innerHTML=`
+      <div class="mole-target">${p.a} ${p.op==='+'?'＋':'−'} ${p.b} = ? の もぐらを たたこう！</div>
+      <div class="mole-field" id="moleField"></div>`;
+    const field=document.getElementById('moleField');
+    vals.forEach(v=>{
+      const hole=document.createElement('div'); hole.className='hole';
+      const m=document.createElement('div'); m.className='mole'; m.textContent=v;
+      m.onclick=()=>{
+        if(this.locked) return;
+        if(v===p.ans){
+          this.locked=true; m.classList.add('bonk'); Snd.bonk(); Snd.correct();
+          this.correctCount++; praise(); confetti();
+          setTimeout(()=>{ this.qIndex++; this.nextMole(); },650);
+        } else {
+          Snd.wrong(); m.style.bottom='-100%';
+          m.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:250});
+        }
+      };
+      hole.appendChild(m); field.appendChild(hole);
+    });
+    // pop moles up with slight delay
+    requestAnimationFrame(()=>{ [...field.querySelectorAll('.mole')].forEach((m,i)=>setTimeout(()=>m.classList.add('up'), 120+i*90)); });
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+  },
+
+  /* ============ shared answer handling ============ */
+  answer(btn,val,ans,onNext){
+    if(this.locked) return;
+    if(val===ans){
+      this.locked=true; btn.classList.add('correct'); Snd.correct();
+      this.correctCount++; praise(); confetti();
+      // small coin trickle
+      const d=Store.get(); d.coins+=1; Store.save(d); Snd.coin(); this.refreshCoins();
+      setTimeout(onNext, 800);
+    } else {
+      btn.classList.add('wrong'); Snd.wrong();
+      setTimeout(()=>btn.classList.remove('wrong'),500);
+    }
+  },
+
+  /* ============ finish ============ */
+  finish(){
+    Snd.win();
+    const ratio=this.correctCount/this.qTotal;
+    const stars = ratio>=1?3 : ratio>=.7?2 : 1;
+    const reward = 5 + stars*5 + this.level*2;
+    const d=Store.get(); d.coins+=reward;
+    // award sticker sometimes
+    let newSticker=null;
+    if(stars>=2){
+      const locked=STICKERS.filter(s=>!d.stickers.includes(s));
+      if(locked.length){ newSticker=locked[rnd(0,locked.length-1)]; d.stickers.push(newSticker); }
+    }
+    Store.save(d); this.refreshCoins();
+    document.getElementById('resultBonchan').innerHTML=bonchanSVG('cheer');
+    document.getElementById('resultStars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+    document.getElementById('resultCoins').textContent='+'+reward;
+    document.getElementById('resultSticker').textContent = newSticker ? `あたらしい シール ${newSticker} を ゲット！` : 'シールちょうを みてみよう！';
+    this.show('result');
+    confetti(40);
+  },
+  replay(){ this.start(this.level); },
+
+  renderStickers(){
+    const d=Store.get(); const g=document.getElementById('stickerGrid'); g.innerHTML='';
+    STICKERS.forEach(s=>{
+      const el=document.createElement('div');
+      const got=d.stickers.includes(s);
+      el.className='sticker '+(got?'unlocked':'locked');
+      el.style.position='relative';
+      el.textContent=got?s:'';
+      g.appendChild(el);
+    });
+  },
+};
+
+function bonchanMini(){ return '<svg viewBox="0 0 46 50" style="width:32px;height:32px">'+bonchanSVG('happy').replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</svg>'; }
+
+/* ===================== fx helpers ===================== */
+function praise(){
+  const words=['すごい！','せいかい！','やったね！','てんさい！','ナイス！','ピンポン！'];
+  const el=document.getElementById('praise');
+  el.textContent=words[rnd(0,words.length-1)];
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function confetti(n=18){
+  const colors=['#ff7eb3','#5bc0f8','#7ed957','#ffd23f','#b48cff'];
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    c.style.left=Math.random()*100+'vw';
+    c.style.background=colors[rnd(0,colors.length-1)];
+    c.style.transform=`rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(c);
+    const dur=900+Math.random()*700;
+    c.animate([{top:'-20px',opacity:1},{top:'100vh',opacity:.9}],{duration:dur,easing:'ease-in'});
+    setTimeout(()=>c.remove(),dur);
+  }
+}
+
+/* ===================== utils ===================== */
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=rnd(0,i); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function repeatEmoji(e,n){ let s=''; for(let i=0;i<n;i++) s+=`<span class="item">${e}</span>`; return s; }
+
+/* ===================== init ===================== */
+document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy');
+Game.refreshCoins();
+// unlock audio on first touch (iOS)
+document.addEventListener('touchstart', function once(){ try{ Snd.tap(); }catch(e){} document.removeEventListener('touchstart',once); }, {once:true});
+</script>
+</body>
+</html>
