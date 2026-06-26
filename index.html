@@ -138,12 +138,11 @@
     box-shadow:inset 0 -8px 16px rgba(0,0,0,.35);
   }
   .mole{
-    position:absolute; left:8%; right:8%; bottom:-100%; top:auto; height:84%;
-    background:linear-gradient(160deg,#caa06a,#a87838);
-    border-radius:50% 50% 45% 45%; transition:bottom .18s cubic-bezier(.5,1.7,.6,1);
-    display:flex; align-items:center; justify-content:center; cursor:pointer;
-    font-size:34px; font-weight:800; color:#fff; text-shadow:0 2px 2px rgba(0,0,0,.3);
+    position:absolute; left:6%; right:6%; bottom:-105%; top:auto; height:96%;
+    transition:bottom .18s cubic-bezier(.5,1.7,.6,1);
+    cursor:pointer;
   }
+  .mole svg{width:100%; height:100%; display:block; pointer-events:none;}
   .mole.up{bottom:0;}
   .mole.bonk{animation:bonk .3s;}
   @keyframes bonk{0%{transform:scale(1);}50%{transform:scale(1.25) rotate(8deg);}100%{transform:scale(0);}}
@@ -314,6 +313,27 @@ function bonchanSVG(mood){
     <circle cx="23" cy="22" r="16" fill="#ffe0b2" stroke="#e8a05a" stroke-width="2"/>
     <circle cx="15" cy="24" r="3" fill="#ffb3c8"/><circle cx="31" cy="24" r="3" fill="#ffb3c8"/>
     ${eye}${mouth}
+  </svg>`;
+}
+
+/* ===================== Mole SVG ===================== */
+function moleSVG(num){
+  return `<svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMax meet">
+    <ellipse cx="60" cy="113" rx="46" ry="11" fill="rgba(0,0,0,.12)"/>
+    <circle cx="24" cy="56" r="11" fill="#8a5e34"/>
+    <circle cx="96" cy="56" r="11" fill="#8a5e34"/>
+    <path d="M18 112 Q14 42 60 38 Q106 42 102 112 Z" fill="#9c6c3e"/>
+    <ellipse cx="60" cy="94" rx="30" ry="27" fill="#ecca9d"/>
+    <ellipse cx="35" cy="109" rx="12" ry="8" fill="#ecca9d"/>
+    <ellipse cx="85" cy="109" rx="12" ry="8" fill="#ecca9d"/>
+    <circle cx="48" cy="84" r="5.5" fill="#3a2510"/>
+    <circle cx="72" cy="84" r="5.5" fill="#3a2510"/>
+    <circle cx="49.6" cy="82.3" r="1.9" fill="#fff"/>
+    <circle cx="73.6" cy="82.3" r="1.9" fill="#fff"/>
+    <ellipse cx="60" cy="99" rx="11" ry="8" fill="#fff5e6"/>
+    <ellipse cx="60" cy="96" rx="6.5" ry="4.5" fill="#e98ba0"/>
+    <circle cx="60" cy="42" r="20" fill="#fff" stroke="#ffd23f" stroke-width="4"/>
+    <text x="60" y="51" font-size="27" font-weight="900" text-anchor="middle" fill="#5a3a1a" font-family="'Hiragino Maru Gothic ProN',sans-serif">${num}</text>
   </svg>`;
 }
 
@@ -510,7 +530,7 @@ const Game = {
     const field=document.getElementById('moleField');
     vals.forEach(v=>{
       const hole=document.createElement('div'); hole.className='hole';
-      const m=document.createElement('div'); m.className='mole'; m.textContent=v;
+      const m=document.createElement('div'); m.className='mole'; m.innerHTML=moleSVG(v);
       m.onclick=()=>{
         if(this.locked) return;
         if(v===p.ans){
