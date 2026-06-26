@@ -190,6 +190,31 @@
 
   .hint{font-size:18px; color:#a07a4a; text-align:center;}
   .confetti{position:fixed;top:-20px;width:14px;height:14px;border-radius:3px;z-index:40;pointer-events:none;}
+
+  /* ---- そだてる / 育成 ---- */
+  .c-grow{background:linear-gradient(160deg,#ffb066,#ff8a3d);}
+  .game-card.wide{grid-column:1 / -1;}
+  .game-card .emoji svg{width:1em;height:1em;}
+  .grow-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:12px; padding-top:4px; overflow-y:auto;}
+  .grow-stage{font-size:26px; font-weight:800; color:var(--pink-d); text-shadow:1px 2px 0 #fff;}
+  .grow-bonchan{display:flex; align-items:flex-end; justify-content:center; height:206px;}
+  .grow-bonchan svg{filter:drop-shadow(0 6px 6px rgba(0,0,0,.12)); animation:bob 2.6s ease-in-out infinite;}
+  .grow-bonchan.eat svg{animation:eat .55s;}
+  @keyframes eat{0%,100%{transform:scale(1);}30%{transform:scale(1.12) translateY(-6px);}60%{transform:scale(.96);}}
+  .grow-bar{width:min(420px,86%); height:22px; background:#fff; border-radius:999px; box-shadow:inset 0 2px 4px rgba(0,0,0,.12); overflow:hidden;}
+  .grow-bar-fill{height:100%; width:0; background:linear-gradient(90deg,var(--green),var(--green-d)); border-radius:999px; transition:width .5s;}
+  .grow-prog{font-size:16px; color:#a07a4a; font-weight:700;}
+  .food-row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:2px;}
+  .food-btn{
+    border:none; border-radius:22px; padding:14px 10px 12px; width:118px; cursor:pointer;
+    background:#fff; box-shadow:0 5px 0 rgba(0,0,0,.12); display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .food-btn:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.12);}
+  .food-btn .fe{font-size:40px;}
+  .food-btn .fn{font-size:17px; font-weight:800; color:var(--ink);}
+  .food-btn .fc{font-size:15px; font-weight:800; color:var(--yellow-d); display:flex; align-items:center; gap:3px;}
+  .food-btn:disabled{opacity:.45; filter:grayscale(.4); box-shadow:0 5px 0 rgba(0,0,0,.06); cursor:default;}
+  .grow-msg{font-size:18px; color:#a07a4a; text-align:center; min-height:24px; font-weight:700;}
 </style>
 </head>
 <body>
@@ -218,6 +243,9 @@
       </button>
       <button class="game-card c-sticker" onclick="Game.open('sticker')">
         <span class="emoji">🏅</span><span class="name">シールちょう</span><span class="desc">あつめた ごほうび</span>
+      </button>
+      <button class="game-card c-grow wide" onclick="Game.openGrow()">
+        <span class="emoji" id="growCardIcon"></span><span class="name">そだてる</span><span class="desc">コインで ぼんちゃんに ごはん</span>
       </button>
     </div>
   </section>
@@ -295,6 +323,23 @@
     </div>
   </section>
 
+  <!-- GROW / 育成 -->
+  <section id="grow" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ もどる</button>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="grow-wrap">
+      <div class="grow-stage" id="growStageName"></div>
+      <div class="grow-bonchan" id="growBonchan"></div>
+      <div class="grow-bar"><div class="grow-bar-fill" id="growBarFill"></div></div>
+      <div class="grow-prog" id="growProgText"></div>
+      <div class="grow-msg" id="growMsg"></div>
+      <div class="food-row" id="foodRow"></div>
+    </div>
+  </section>
+
 </div>
 
 <div id="fx"><div class="praise" id="praise"></div></div>
@@ -325,6 +370,31 @@ const HAMMER_SVG =
     '<rect x="12" y="13" width="40" height="8" rx="4" fill="#ff9aa6"/>'+
     '<ellipse cx="22" cy="16.5" rx="5.5" ry="2.8" fill="#ffd5da"/>'+
   '</svg>';
+
+/* ===================== コイン小アイコン ===================== */
+const COIN_SVG = '<svg style="width:1em;height:1em;vertical-align:-.15em" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg>';
+
+/* ===================== 育成ぼんちゃん SVG ===================== */
+function growSVG(stage, eating){
+  const eyes = eating
+    ? '<path d="M22 33 q3 -4 6 0" stroke="#5a3a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M32 33 q3 -4 6 0" stroke="#5a3a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    : '<circle cx="25" cy="34" r="2.8" fill="#5a3a1a"/><circle cx="35" cy="34" r="2.8" fill="#5a3a1a"/>';
+  const mouth = eating
+    ? '<ellipse cx="30" cy="44" rx="5" ry="6" fill="#c0506a"/><path d="M25 43 q5 3 10 0" stroke="#5a3a1a" stroke-width="1.6" fill="none"/>'
+    : '<path d="M25 41 q5 6 10 0" stroke="#5a3a1a" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+  let s='';
+  if(stage>=5){ s+='<text x="6" y="20" font-size="11">✨</text><text x="46" y="17" font-size="11">✨</text><text x="45" y="52" font-size="10">⭐</text><text x="5" y="50" font-size="10">⭐</text>'; }
+  s+='<path d="M22 22 L26 31 M38 22 L34 31" stroke="#e8a05a" stroke-width="2.6" stroke-linecap="round"/>';
+  s+='<circle cx="22" cy="20" r="4" fill="#ff7eb3"/><circle cx="38" cy="20" r="4" fill="#ffd23f"/>';
+  s+='<ellipse cx="30" cy="55" rx="17" ry="3" fill="rgba(0,0,0,.07)"/>';
+  s+='<circle cx="30" cy="36" r="17" fill="#ffe0b2" stroke="#e8a05a" stroke-width="2.2"/>';
+  s+='<circle cx="21" cy="40" r="3.4" fill="#ffb3c8"/><circle cx="39" cy="40" r="3.4" fill="#ffb3c8"/>';
+  s+=eyes+mouth;
+  if(stage>=2){ s+='<path d="M30 52 L23 49 L23 56 Z" fill="#ff6fa5"/><path d="M30 52 L37 49 L37 56 Z" fill="#ff6fa5"/><circle cx="30" cy="52.5" r="2.4" fill="#e85a92"/>'; }
+  if(stage===3){ s+='<path d="M30 5 L24 20 L36 20 Z" fill="#5bc0f8"/><circle cx="30" cy="5" r="2.6" fill="#ffd23f"/>'; }
+  if(stage>=4){ s+='<path d="M20 20 L20 11 L25 16 L30 9 L35 16 L40 11 L40 20 Z" fill="#ffd23f" stroke="#e8b800" stroke-width="1.4" stroke-linejoin="round"/><circle cx="30" cy="13.5" r="1.6" fill="#ff6fa5"/>'; }
+  return '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
 
 /* ===================== Mole SVG ===================== */
 function moleSVG(num){
@@ -385,9 +455,22 @@ function say(text){
 const Store = {
   load(){ try{ return JSON.parse(localStorage.getItem('bonchan')||'{}'); }catch(e){ return {}; } },
   save(d){ localStorage.setItem('bonchan', JSON.stringify(d)); },
-  get(){ const d=this.load(); d.coins=d.coins||0; d.stickers=d.stickers||[]; return d; },
+  get(){ const d=this.load(); d.coins=d.coins||0; d.stickers=d.stickers||[]; d.grow=d.grow||{points:0,lastFed:0}; return d; },
 };
 const STICKERS = ['🐶','🐱','🦄','🐢','🌈','🚀','🍩','⭐','🎈','🐠','🦖','👑'];
+
+/* 育成（そだてる）の設定 */
+const GROW = {
+  foods:[
+    {emoji:'🍎', name:'りんご',   cost:5,  pt:1},
+    {emoji:'🍙', name:'おにぎり', cost:12, pt:3},
+    {emoji:'🍰', name:'ケーキ',   cost:25, pt:7}
+  ],
+  thresholds:[0,8,20,40,70,110],
+  names:['ちいさい ぼんちゃん','げんきな ぼんちゃん','やんちゃ ぼんちゃん','おしゃれ ぼんちゃん','りっぱな ぼんちゃん','でんせつの ぼんちゃん'],
+  stageOf(p){ let s=0; for(let i=0;i<this.thresholds.length;i++){ if(p>=this.thresholds[i]) s=i; } return s; },
+  next(stage){ return stage+1<this.thresholds.length ? this.thresholds[stage+1] : null; }
+};
 
 /* ===================== Game ===================== */
 const Game = {
@@ -609,6 +692,58 @@ const Game = {
       g.appendChild(el);
     });
   },
+
+  /* ============ そだてる / 育成 ============ */
+  openGrow(){
+    Snd.tap(); this.mode='grow';
+    this.renderGrow(false);
+    const d=Store.get();
+    const since=Date.now()-(d.grow.lastFed||0);
+    this.growMsg(d.grow.lastFed && since<18*3600*1000 ? 'ぼんちゃん ごきげん！' : 'ぼんちゃん おなかすいたみたい！ごはん あげてね');
+    this.show('grow');
+  },
+  growMsg(t){ const e=document.getElementById('growMsg'); if(e) e.textContent=t; },
+  renderGrow(eating){
+    const d=Store.get();
+    const pts=d.grow.points;
+    const stage=GROW.stageOf(pts);
+    document.getElementById('growStageName').textContent=GROW.names[stage];
+    const gb=document.getElementById('growBonchan');
+    gb.classList.toggle('eat', !!eating);
+    gb.innerHTML=growSVG(stage, !!eating);
+    const size=Math.min(206,120+stage*16);
+    const svg=gb.querySelector('svg'); if(svg){ svg.style.width=size+'px'; svg.style.height=size+'px'; }
+    const next=GROW.next(stage);
+    const fill=document.getElementById('growBarFill');
+    const prog=document.getElementById('growProgText');
+    if(next===null){ fill.style.width='100%'; prog.textContent='⭐ さいこうレベル！ ⭐'; }
+    else {
+      const base=GROW.thresholds[stage];
+      fill.style.width=Math.round((pts-base)/(next-base)*100)+'%';
+      prog.textContent='つぎの ぼんちゃんまで あと '+(next-pts)+' かい ごはん';
+    }
+    const row=document.getElementById('foodRow'); row.innerHTML='';
+    GROW.foods.forEach((f,i)=>{
+      const b=document.createElement('button'); b.className='food-btn'; b.disabled=d.coins<f.cost;
+      b.innerHTML='<span class="fe">'+f.emoji+'</span><span class="fn">'+f.name+'</span><span class="fc">'+COIN_SVG+f.cost+'</span>';
+      b.onclick=()=>this.feed(i);
+      row.appendChild(b);
+    });
+  },
+  feed(i){
+    const d=Store.get(); const food=GROW.foods[i];
+    if(d.coins<food.cost){ Snd.wrong(); this.growMsg('コインが たりないよ！ゲームで あつめよう'); return; }
+    const before=GROW.stageOf(d.grow.points);
+    d.coins-=food.cost; d.grow.points+=food.pt; d.grow.lastFed=Date.now();
+    Store.save(d); Snd.coin(); this.refreshCoins();
+    this.renderGrow(true);
+    const after=GROW.stageOf(d.grow.points);
+    setTimeout(()=>{
+      this.renderGrow(false);
+      if(after>before){ Snd.win(); praise(); confetti(40); this.growMsg('やったー！ '+GROW.names[after]+' に なった！'); }
+      else { Snd.correct(); this.growMsg('おいしい！（'+food.name+' を たべた）'); }
+    },560);
+  },
 };
 
 function bonchanMini(){ return '<svg viewBox="0 0 46 50" style="width:32px;height:32px">'+bonchanSVG('happy').replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</svg>'; }
@@ -642,6 +777,7 @@ function repeatEmoji(e,n){ let s=''; for(let i=0;i<n;i++) s+=`<span class="item"
 /* ===================== init ===================== */
 document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy');
 document.getElementById('moleCardIcon').innerHTML=HAMMER_SVG;
+document.getElementById('growCardIcon').innerHTML=bonchanSVG('cheer');
 Game.refreshCoins();
 // unlock audio on first touch (iOS)
 document.addEventListener('touchstart', function once(){ try{ Snd.tap(); }catch(e){} document.removeEventListener('touchstart',once); }, {once:true});
