@@ -436,7 +436,7 @@ const Game = {
       b.onclick=()=>this.answer(b,v,p.ans,()=>{this.qIndex++; this.nextShop();});
       row.appendChild(b);
     });
-    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} わ？`);
   },
 
   /* ============ ADVENTURE ============ */
@@ -464,7 +464,7 @@ const Game = {
       b.onclick=()=>this.answer(b,v,p.ans,()=>{ this.advPos++; this.qIndex++; this.drawTrack(); this.nextAdv(); });
       row.appendChild(b);
     });
-    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} わ？`);
   },
 
   /* ============ MOLE ============ */
@@ -499,7 +499,7 @@ const Game = {
     });
     // pop moles up with slight delay
     requestAnimationFrame(()=>{ [...field.querySelectorAll('.mole')].forEach((m,i)=>setTimeout(()=>m.classList.add('up'), 120+i*90)); });
-    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} は？`);
+    say(`${p.a} ${p.op==='+'?'たす':'ひく'} ${p.b} わ？`);
   },
 
   /* ============ shared answer handling ============ */
