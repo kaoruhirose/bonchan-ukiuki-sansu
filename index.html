@@ -388,9 +388,25 @@ const Game = {
   start(level){
     Snd.tap();
     this.level=level; this.qIndex=0; this.correctCount=0; this.advPos=0; this.locked=false;
-    if(this.mode==='mole'){ this.qTotal=8; this.startMole(); this.show('play'); }
-    else if(this.mode==='adventure'){ this.qTotal=this.advLen; this.startAdventure(); this.show('advplay'); }
-    else { this.qTotal=5; this.show('play'); this.nextShop(); }
+    if(this.mode==='mole'){ this.qTotal=8; }
+    else if(this.mode==='adventure'){ this.qTotal=this.advLen; }
+    else { this.qTotal=5; }
+    this.buildOpQueue();
+    if(this.mode==='mole'){ this.startMole(); this.show('play'); }
+    else if(this.mode==='adventure'){ this.startAdventure(); this.show('advplay'); }
+    else { this.show('play'); this.nextShop(); }
+  },
+
+  /* ミックスは1ゲームの中で たし算・ひき算が ほぼ半々になるよう 並びを作る */
+  buildOpQueue(){
+    this.opPtr=0;
+    if(this.level!==4){ this.opQueue=null; return; }
+    const n=this.qTotal, half=Math.floor(n/2);
+    const ops=[];
+    for(let i=0;i<half;i++) ops.push('+');
+    for(let i=0;i<half;i++) ops.push('-');
+    if(ops.length<n) ops.push(Math.random()<.5?'+':'-'); // 奇数のときの あまり1問
+    this.opQueue=shuffle(ops);
   },
 
   /* ---- problem generator ---- */
@@ -400,7 +416,11 @@ const Game = {
     if(L===1){ op='+'; a=rnd(1,4); b=rnd(1,5-a); ans=a+b; }
     else if(L===2){ op='+'; a=rnd(1,8); b=rnd(1,10-a); ans=a+b; }
     else if(L===3){ op='-'; a=rnd(3,10); b=rnd(1,a-1); ans=a-b; }
-    else { if(Math.random()<.5){op='+'; a=rnd(2,8); b=rnd(1,10-a); ans=a+b;} else {op='-'; a=rnd(3,10); b=rnd(1,a-1); ans=a-b;} }
+    else {
+      op = (this.opQueue && this.opPtr<this.opQueue.length) ? this.opQueue[this.opPtr++] : (Math.random()<.5?'+':'-');
+      if(op==='+'){ a=rnd(2,8); b=rnd(1,10-a); ans=a+b; }
+      else { a=rnd(3,10); b=rnd(1,a-1); ans=a-b; }
+    }
     return {a,b,op,ans};
   },
   choices(ans){
