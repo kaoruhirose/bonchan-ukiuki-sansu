@@ -1,0 +1,30 @@
+{
+  "name": "ぼんちゃん うきうき算数",
+  "short_name": "うきうき算数",
+  "start_url": "/bonchan-ukiuki-sansu/",
+  "scope": "/bonchan-ukiuki-sansu/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff7e6",
+  "theme_color": "#ff8fbb",
+  "icons": [
+    {
+      "src": "/bonchan-ukiuki-sansu/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/bonchan-ukiuki-sansu/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/bonchan-ukiuki-sansu/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
