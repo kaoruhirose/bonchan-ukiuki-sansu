@@ -215,6 +215,9 @@
   .food-btn .fc{font-size:15px; font-weight:800; color:var(--yellow-d); display:flex; align-items:center; gap:3px;}
   .food-btn:disabled{opacity:.45; filter:grayscale(.4); box-shadow:0 5px 0 rgba(0,0,0,.06); cursor:default;}
   .grow-msg{font-size:18px; color:#a07a4a; text-align:center; min-height:24px; font-weight:700;}
+  .c-review{background:linear-gradient(160deg,#46d6c4,#1fb39f);}
+  .btn-icon{background:#fff; border:none; border-radius:999px; width:48px; height:48px; font-size:24px; box-shadow:var(--shadow); cursor:pointer; line-height:1;}
+  .btn-icon:active{transform:translateY(3px);}
 </style>
 </head>
 <body>
@@ -223,6 +226,7 @@
   <!-- HOME -->
   <section id="home" class="screen active">
     <div class="topbar">
+      <button class="btn-icon" onclick="Game.openSettings()" aria-label="せってい">⚙️</button>
       <div class="spacer"></div>
       <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span id="coinCount">0</span></div>
     </div>
@@ -243,6 +247,9 @@
       </button>
       <button class="game-card c-sticker" onclick="Game.open('sticker')">
         <span class="emoji">🏅</span><span class="name">シールちょう</span><span class="desc">あつめた ごほうび</span>
+      </button>
+      <button class="game-card c-review wide" onclick="Game.openReview()">
+        <span class="emoji">🎯</span><span class="name">にがて れんしゅう</span><span class="desc" id="reviewDesc">まちがえた もんだいを ふくしゅう</span>
       </button>
       <button class="game-card c-grow wide" onclick="Game.openGrow()">
         <span class="emoji" id="growCardIcon"></span><span class="name">そだてる</span><span class="desc">コインで ぼんちゃんに ごはん</span>
@@ -337,6 +344,23 @@
       <div class="grow-prog" id="growProgText"></div>
       <div class="grow-msg" id="growMsg"></div>
       <div class="food-row" id="foodRow"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="screen">
+    <div class="topbar">
+      <button class="btn-back" onclick="Game.home()">◀ もどる</button>
+      <div class="spacer"></div>
+      <div class="coin-badge"><svg class="c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ffd23f" stroke="#e8b800" stroke-width="3"/><text x="20" y="27" font-size="20" text-anchor="middle" fill="#b88a00" font-weight="900">¥</text></svg><span class="coinMirror">0</span></div>
+    </div>
+    <div class="panel">
+      <h2>⚙️ せってい</h2>
+      <p class="hint" id="settingsStats" style="line-height:1.7"></p>
+      <div style="text-align:center; margin-top:16px">
+        <button class="big-btn" style="background:linear-gradient(160deg,#ff8a8a,#e85a5a); box-shadow:0 6px 0 #c84444" onclick="Game.doReset()">さいしょから やりなおす</button>
+      </div>
+      <p class="hint" style="margin-top:16px; font-size:14px">※ コイン・ぼんちゃんのレベル・シール・にがて が ぜんぶ きえます。おうちのひとと いっしょに おしてね。</p>
     </div>
   </section>
 
@@ -455,21 +479,29 @@ function say(text){
 const Store = {
   load(){ try{ return JSON.parse(localStorage.getItem('bonchan')||'{}'); }catch(e){ return {}; } },
   save(d){ localStorage.setItem('bonchan', JSON.stringify(d)); },
-  get(){ const d=this.load(); d.coins=d.coins||0; d.stickers=d.stickers||[]; d.grow=d.grow||{points:0,lastFed:0}; return d; },
+  get(){ const d=this.load(); d.coins=d.coins||0; d.stickers=d.stickers||[]; d.grow=d.grow||{points:0,lastFed:0}; d.mistakes=d.mistakes||{}; return d; },
 };
 const STICKERS = ['🐶','🐱','🦄','🐢','🌈','🚀','🍩','⭐','🎈','🐠','🦖','👑'];
 
-/* 育成（そだてる）の設定 */
+/* 育成（そだてる）の設定 ── レベルは無限に上がる */
 const GROW = {
   foods:[
     {emoji:'🍎', name:'りんご',   cost:5,  pt:1},
     {emoji:'🍙', name:'おにぎり', cost:12, pt:3},
     {emoji:'🍰', name:'ケーキ',   cost:25, pt:7}
   ],
-  thresholds:[0,8,20,40,70,110],
-  names:['ちいさい ぼんちゃん','げんきな ぼんちゃん','やんちゃ ぼんちゃん','おしゃれ ぼんちゃん','りっぱな ぼんちゃん','でんせつの ぼんちゃん'],
-  stageOf(p){ let s=0; for(let i=0;i<this.thresholds.length;i++){ if(p>=this.thresholds[i]) s=i; } return s; },
-  next(stage){ return stage+1<this.thresholds.length ? this.thresholds[stage+1] : null; }
+  names:['ちいさい','げんきな','やんちゃ','おしゃれ','りっぱな','でんせつの'],
+  // そのレベルになるために 必要な 累計ポイント（レベル1 = 0）
+  threshold(level){
+    const fixed=[0,8,20,40,70,110]; // レベル 1〜6
+    return level<=6 ? fixed[level-1] : 110 + (level-6)*60;
+  },
+  levelOf(points){ let lv=1; while(points>=this.threshold(lv+1)) lv++; return lv; },
+  stageVisual(level){ return Math.min(5, level-1); }, // 見た目は6段階で打ち止め
+  name(level){
+    const base=this.names[Math.min(5,level-1)]+' ぼんちゃん';
+    return level<=6 ? base : 'でんせつの ぼんちゃん Lv.'+level;
+  }
 };
 
 /* ===================== Game ===================== */
@@ -487,10 +519,10 @@ const Game = {
     document.getElementById(id).classList.add('active');
     this.refreshCoins();
   },
-  home(){ this.mode=null; this.show('home'); document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy'); },
+  home(){ this.mode=null; this.reviewMode=false; this.show('home'); this.updateReviewCard(); document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy'); },
 
   open(mode){
-    Snd.tap();
+    Snd.tap(); this.reviewMode=false;
     this.mode=mode;
     if(mode==='sticker'){ this.renderStickers(); this.show('sticker'); return; }
     const titles={shop:'🛒 おかいもの', adventure:'🎲 ぼうけん', mole:HAMMER_SVG+' もぐらたたき'};
@@ -499,7 +531,7 @@ const Game = {
   },
 
   start(level){
-    Snd.tap();
+    Snd.tap(); this.reviewMode=false;
     this.level=level; this.qIndex=0; this.correctCount=0; this.advPos=0; this.locked=false;
     if(this.mode==='mole'){ this.qTotal=8; }
     else if(this.mode==='adventure'){ this.qTotal=this.advLen; }
@@ -524,6 +556,7 @@ const Game = {
 
   /* ---- problem generator ---- */
   makeProblem(){
+    if(this.reviewMode){ const mp=this.pickMistakeProblem(); if(mp) return mp; }
     const L=this.level;
     let a,b,op,ans;
     if(L===1){ op='+'; a=rnd(1,4); b=rnd(1,5-a); ans=a+b; }
@@ -629,10 +662,10 @@ const Game = {
         if(this.locked) return;
         if(v===p.ans){
           this.locked=true; m.classList.add('bonk'); Snd.bonk(); Snd.correct();
-          this.correctCount++; praise(); confetti();
+          this.correctCount++; praise(); confetti(); this.clearMistake();
           setTimeout(()=>{ this.qIndex++; this.nextMole(); },650);
         } else {
-          Snd.wrong(); m.style.bottom='-100%';
+          Snd.wrong(); this.recordMistake(); m.style.bottom='-100%';
           m.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:250});
         }
       };
@@ -649,37 +682,73 @@ const Game = {
     if(val===ans){
       this.locked=true; btn.classList.add('correct'); Snd.correct();
       this.correctCount++; praise(); confetti();
+      this.clearMistake();
       // small coin trickle
       const d=Store.get(); d.coins+=1; Store.save(d); Snd.coin(); this.refreshCoins();
       setTimeout(onNext, 800);
     } else {
-      btn.classList.add('wrong'); Snd.wrong();
+      btn.classList.add('wrong'); Snd.wrong(); this.recordMistake();
       setTimeout(()=>btn.classList.remove('wrong'),500);
     }
   },
+
+  /* ============ にがて（まちがい）の きおく ============ */
+  keyOf(p){ return p ? (p.a+p.op+p.b) : ''; },
+  recordMistake(){ const p=this.current; if(!p) return; const d=Store.get(); const k=this.keyOf(p); d.mistakes[k]=(d.mistakes[k]||0)+1; Store.save(d); },
+  clearMistake(){ const p=this.current; if(!p) return; const d=Store.get(); const k=this.keyOf(p); if(d.mistakes[k]){ d.mistakes[k]--; if(d.mistakes[k]<=0) delete d.mistakes[k]; Store.save(d); } },
+  pickMistakeProblem(){
+    const d=Store.get(); const keys=Object.keys(d.mistakes||{});
+    if(!keys.length) return null;
+    let pool=[]; keys.forEach(k=>{ const n=Math.min(5,d.mistakes[k]); for(let i=0;i<n;i++) pool.push(k); });
+    const m=pool[rnd(0,pool.length-1)].match(/^(\d+)([+\-])(\d+)$/);
+    if(!m) return null;
+    const a=+m[1], op=m[2], b=+m[3];
+    return {a,b,op,ans: op==='+'? a+b : a-b};
+  },
+  updateReviewCard(){
+    const d=Store.get(); const cnt=Object.keys(d.mistakes||{}).length;
+    const e=document.getElementById('reviewDesc');
+    if(e) e.textContent = cnt ? ('にがて '+cnt+'こ を ふくしゅう') : 'いまは にがてが ないよ！';
+  },
+  openReview(){
+    Snd.tap(); this.reviewMode=false;
+    const d=Store.get(); const cnt=Object.keys(d.mistakes||{}).length;
+    if(cnt===0){ this.mode=null; this.growMsgAlert('いまは にがてが ないよ！\nゲームで まちがえると ここで れんしゅうできるよ。'); return; }
+    this.mode='review'; this.reviewMode=true; this.level=0;
+    this.qIndex=0; this.correctCount=0; this.locked=false; this.opQueue=null;
+    this.qTotal=Math.min(6, Math.max(3, cnt));
+    this.show('play'); this.nextShop();
+  },
+  growMsgAlert(t){ alert(t); },
 
   /* ============ finish ============ */
   finish(){
     Snd.win();
     const ratio=this.correctCount/this.qTotal;
     const stars = ratio>=1?3 : ratio>=.7?2 : 1;
-    const reward = 5 + stars*5 + this.level*2;
+    const reward = 5 + stars*5 + (this.level||1)*2;
     const d=Store.get(); d.coins+=reward;
-    // award sticker sometimes
+    // クリアすると ぼんちゃんが せいちょう（無限レベルアップ）
+    const growGain = 2 + stars;
+    const beforeLv=GROW.levelOf(d.grow.points);
+    d.grow.points += growGain;
+    const afterLv=GROW.levelOf(d.grow.points);
+    // シールも たまに もらえる
     let newSticker=null;
     if(stars>=2){
       const locked=STICKERS.filter(s=>!d.stickers.includes(s));
       if(locked.length){ newSticker=locked[rnd(0,locked.length-1)]; d.stickers.push(newSticker); }
     }
-    Store.save(d); this.refreshCoins();
+    Store.save(d); this.refreshCoins(); this.updateReviewCard();
     document.getElementById('resultBonchan').innerHTML=bonchanSVG('cheer');
     document.getElementById('resultStars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
     document.getElementById('resultCoins').textContent='+'+reward;
-    document.getElementById('resultSticker').textContent = newSticker ? `あたらしい シール ${newSticker} を ゲット！` : 'シールちょうを みてみよう！';
+    const growLine = afterLv>beforeLv ? `🎉 ぼんちゃんが レベル ${afterLv} に なった！` : `ぼんちゃんが ${growGain} せいちょう！`;
+    document.getElementById('resultSticker').textContent = (newSticker ? `シール ${newSticker} ゲット！ ` : '') + growLine;
     this.show('result');
     confetti(40);
   },
-  replay(){ this.start(this.level); },
+  replay(){ if(this.mode==='review'){ this.openReview(); } else { this.start(this.level); } },
 
   renderStickers(){
     const d=Store.get(); const g=document.getElementById('stickerGrid'); g.innerHTML='';
@@ -693,9 +762,25 @@ const Game = {
     });
   },
 
+  /* ============ せってい / リセット ============ */
+  openSettings(){
+    Snd.tap();
+    const d=Store.get(); const lv=GROW.levelOf(d.grow.points);
+    const cnt=Object.keys(d.mistakes||{}).length;
+    document.getElementById('settingsStats').innerHTML=
+      'ぼんちゃん レベル <b>'+lv+'</b>　／　コイン <b>'+d.coins+'</b><br>シール <b>'+d.stickers.length+'/'+STICKERS.length+'</b>　／　にがて <b>'+cnt+'</b>こ';
+    this.show('settings');
+  },
+  doReset(){
+    if(confirm('ほんとうに さいしょから やりなおしますか？\n（コイン・レベル・シール・にがて が ぜんぶ きえます）')){
+      localStorage.removeItem('bonchan');
+      location.reload();
+    }
+  },
+
   /* ============ そだてる / 育成 ============ */
   openGrow(){
-    Snd.tap(); this.mode='grow';
+    Snd.tap(); this.mode='grow'; this.reviewMode=false;
     this.renderGrow(false);
     const d=Store.get();
     const since=Date.now()-(d.grow.lastFed||0);
@@ -706,22 +791,17 @@ const Game = {
   renderGrow(eating){
     const d=Store.get();
     const pts=d.grow.points;
-    const stage=GROW.stageOf(pts);
-    document.getElementById('growStageName').textContent=GROW.names[stage];
+    const level=GROW.levelOf(pts);
+    const stage=GROW.stageVisual(level);
+    document.getElementById('growStageName').textContent=GROW.name(level)+'（レベル '+level+'）';
     const gb=document.getElementById('growBonchan');
     gb.classList.toggle('eat', !!eating);
     gb.innerHTML=growSVG(stage, !!eating);
     const size=Math.min(206,120+stage*16);
     const svg=gb.querySelector('svg'); if(svg){ svg.style.width=size+'px'; svg.style.height=size+'px'; }
-    const next=GROW.next(stage);
-    const fill=document.getElementById('growBarFill');
-    const prog=document.getElementById('growProgText');
-    if(next===null){ fill.style.width='100%'; prog.textContent='⭐ さいこうレベル！ ⭐'; }
-    else {
-      const base=GROW.thresholds[stage];
-      fill.style.width=Math.round((pts-base)/(next-base)*100)+'%';
-      prog.textContent='つぎの ぼんちゃんまで あと '+(next-pts)+' かい ごはん';
-    }
+    const base=GROW.threshold(level), next=GROW.threshold(level+1);
+    document.getElementById('growBarFill').style.width=Math.round((pts-base)/(next-base)*100)+'%';
+    document.getElementById('growProgText').textContent='つぎの レベルまで あと '+(next-pts)+' かい ごはん';
     const row=document.getElementById('foodRow'); row.innerHTML='';
     GROW.foods.forEach((f,i)=>{
       const b=document.createElement('button'); b.className='food-btn'; b.disabled=d.coins<f.cost;
@@ -733,14 +813,14 @@ const Game = {
   feed(i){
     const d=Store.get(); const food=GROW.foods[i];
     if(d.coins<food.cost){ Snd.wrong(); this.growMsg('コインが たりないよ！ゲームで あつめよう'); return; }
-    const before=GROW.stageOf(d.grow.points);
+    const before=GROW.levelOf(d.grow.points);
     d.coins-=food.cost; d.grow.points+=food.pt; d.grow.lastFed=Date.now();
     Store.save(d); Snd.coin(); this.refreshCoins();
     this.renderGrow(true);
-    const after=GROW.stageOf(d.grow.points);
+    const after=GROW.levelOf(d.grow.points);
     setTimeout(()=>{
       this.renderGrow(false);
-      if(after>before){ Snd.win(); praise(); confetti(40); this.growMsg('やったー！ '+GROW.names[after]+' に なった！'); }
+      if(after>before){ Snd.win(); praise(); confetti(40); this.growMsg('やったー！ レベル '+after+' に なった！'); }
       else { Snd.correct(); this.growMsg('おいしい！（'+food.name+' を たべた）'); }
     },560);
   },
@@ -778,6 +858,7 @@ function repeatEmoji(e,n){ let s=''; for(let i=0;i<n;i++) s+=`<span class="item"
 document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy');
 document.getElementById('moleCardIcon').innerHTML=HAMMER_SVG;
 document.getElementById('growCardIcon').innerHTML=bonchanSVG('cheer');
+Game.updateReviewCard();
 Game.refreshCoins();
 // unlock audio on first touch (iOS)
 document.addEventListener('touchstart', function once(){ try{ Snd.tap(); }catch(e){} document.removeEventListener('touchstart',once); }, {once:true});
