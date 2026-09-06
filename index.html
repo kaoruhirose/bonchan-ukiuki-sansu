@@ -508,6 +508,13 @@ const GROW = {
 const Game = {
   mode:null, level:1, qIndex:0, qTotal:5, correctCount:0,
   current:null, advPos:0, advLen:12, locked:false,
+  questionHadMistake:false, nextTimer:null,
+
+  cancelNext(){ clearTimeout(this.nextTimer); this.nextTimer=null; },
+  scheduleNext(callback, delay){
+    this.cancelNext();
+    this.nextTimer=setTimeout(()=>{ this.nextTimer=null; callback(); },delay);
+  },
 
   refreshCoins(){
     const c=Store.get().coins;
@@ -519,7 +526,7 @@ const Game = {
     document.getElementById(id).classList.add('active');
     this.refreshCoins();
   },
-  home(){ this.mode=null; this.reviewMode=false; this.show('home'); this.updateReviewCard(); document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy'); },
+  home(){ this.cancelNext(); this.locked=true; this.mode=null; this.reviewMode=false; this.show('home'); this.updateReviewCard(); document.getElementById('homeBonchan').innerHTML=bonchanSVG('happy'); },
 
   open(mode){
     Snd.tap(); this.reviewMode=false;
@@ -531,6 +538,7 @@ const Game = {
   },
 
   start(level){
+    this.cancelNext();
     Snd.tap(); this.reviewMode=false;
     this.level=level; this.qIndex=0; this.correctCount=0; this.advPos=0; this.locked=false;
     if(this.mode==='mole'){ this.qTotal=8; }
@@ -587,7 +595,7 @@ const Game = {
   nextShop(){
     if(this.qIndex>=this.qTotal){ return this.finish(); }
     this.locked=false;
-    const p=this.makeProblem(); this.current=p;
+    const p=this.makeProblem(); this.current=p; this.questionHadMistake=false;
     this.drawDots();
     const fruits=['🍎','🍊','🍓','🍌','🍇','🍑'];
     const f=fruits[rnd(0,fruits.length-1)];
@@ -630,7 +638,7 @@ const Game = {
   nextAdv(){
     if(this.advPos>=this.advLen){ return this.finish(); }
     this.locked=false;
-    const p=this.makeProblem(); this.current=p;
+    const p=this.makeProblem(); this.current=p; this.questionHadMistake=false;
     document.getElementById('advQuestion').textContent=`${p.a} ${p.op==='+'?'＋':'−'} ${p.b} = ?`;
     const row=document.getElementById('advAnswers'); row.innerHTML='';
     this.choices(p.ans).forEach(v=>{
@@ -646,9 +654,10 @@ const Game = {
   nextMole(){
     if(this.qIndex>=this.qTotal){ return this.finish(); }
     this.locked=false;
-    const p=this.makeProblem(); this.current=p;
-    const wrongs=new Set();
-    while(wrongs.size<5){ let d=p.ans+rnd(-3,3); if(d>=0&&d<=12&&d!==p.ans) wrongs.add(d); }
+    const p=this.makeProblem(); this.current=p; this.questionHadMistake=false;
+    // 正解の近くから、必ず5個の異なる候補を選べる範囲を用意する。
+    const min=Math.max(0, Math.min(p.ans-3, 6));
+    const wrongs=shuffle(Array.from({length:7},(_,i)=>min+i).filter(v=>v!==p.ans)).slice(0,5);
     const vals=shuffle([p.ans,...wrongs]);
     const area=document.getElementById('playArea');
     area.innerHTML=`
@@ -663,7 +672,7 @@ const Game = {
         if(v===p.ans){
           this.locked=true; m.classList.add('bonk'); Snd.bonk(); Snd.correct();
           this.correctCount++; praise(); confetti(); this.clearMistake();
-          setTimeout(()=>{ this.qIndex++; this.nextMole(); },650);
+          this.scheduleNext(()=>{ this.qIndex++; this.nextMole(); },650);
         } else {
           Snd.wrong(); this.recordMistake(); m.style.bottom='-100%';
           m.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:250});
@@ -685,7 +694,7 @@ const Game = {
       this.clearMistake();
       // small coin trickle
       const d=Store.get(); d.coins+=1; Store.save(d); Snd.coin(); this.refreshCoins();
-      setTimeout(onNext, 800);
+      this.scheduleNext(onNext, 800);
     } else {
       btn.classList.add('wrong'); Snd.wrong(); this.recordMistake();
       setTimeout(()=>btn.classList.remove('wrong'),500);
@@ -694,8 +703,8 @@ const Game = {
 
   /* ============ にがて（まちがい）の きおく ============ */
   keyOf(p){ return p ? (p.a+p.op+p.b) : ''; },
-  recordMistake(){ const p=this.current; if(!p) return; const d=Store.get(); const k=this.keyOf(p); d.mistakes[k]=(d.mistakes[k]||0)+1; Store.save(d); },
-  clearMistake(){ const p=this.current; if(!p) return; const d=Store.get(); const k=this.keyOf(p); if(d.mistakes[k]){ d.mistakes[k]--; if(d.mistakes[k]<=0) delete d.mistakes[k]; Store.save(d); } },
+  recordMistake(){ const p=this.current; if(!p) return; this.questionHadMistake=true; const d=Store.get(); const k=this.keyOf(p); d.mistakes[k]=(d.mistakes[k]||0)+1; Store.save(d); },
+  clearMistake(){ const p=this.current; if(!p || this.questionHadMistake) return; const d=Store.get(); const k=this.keyOf(p); if(d.mistakes[k]){ d.mistakes[k]--; if(d.mistakes[k]<=0) delete d.mistakes[k]; Store.save(d); } },
   pickMistakeProblem(){
     const d=Store.get(); const keys=Object.keys(d.mistakes||{});
     if(!keys.length) return null;
@@ -711,6 +720,7 @@ const Game = {
     if(e) e.textContent = cnt ? ('にがて '+cnt+'こ を ふくしゅう') : 'いまは にがてが ないよ！';
   },
   openReview(){
+    this.cancelNext();
     Snd.tap(); this.reviewMode=false;
     const d=Store.get(); const cnt=Object.keys(d.mistakes||{}).length;
     if(cnt===0){ this.mode=null; this.growMsgAlert('いまは にがてが ないよ！\nゲームで まちがえると ここで れんしゅうできるよ。'); return; }
